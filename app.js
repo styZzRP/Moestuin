@@ -299,7 +299,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v14 ",
+                        " · v15 ",
                         React.createElement("button", { style: S.infoBtn, onClick: () => setShowInfo(true), "aria-label": "Over opslag" },
                             React.createElement(Info, { size: 14 }),
                             " opslag"),
@@ -320,7 +320,7 @@ function MoestuinApp() {
             React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: "Zoek een groente\u2026", style: S.searchInput }),
             query && (React.createElement("button", { style: S.iconBtn, onClick: () => setQuery(""), "aria-label": "Wissen" },
                 React.createElement(X, { size: 18 })))),
-        React.createElement("main", { style: S.main, className: "app-main" }, q ? (React.createElement(SearchResults, { current: currentMatches, archived: archiveMatches, onOpenBed: (id) => { setQuery(""); setSelectedBed(id); }, onViewArchived: (crop) => setArchiveCropView(crop) })) : state.beds.length === 0 ? (React.createElement(EmptyGarden, { onAdd: addBed, onLoadTemplate: () => persist(buildInitialGarden()), onLoadPhoto: () => persist(buildPhotoGarden()) })) : state.beds.some((b) => b.photo) ? (React.createElement(PhotoGarden, { beds: state.beds, onSelect: setSelectedBed, onReload: () => persist(buildPhotoGarden()) })) : (React.createElement(GardenCanvas, { beds: state.beds, cropsFor: cropsFor, editLayout: editLayout, onSelect: setSelectedBed, onUpdateBed: updateBed }))),
+        React.createElement("main", { style: S.main, className: "app-main" }, q ? (React.createElement(SearchResults, { current: currentMatches, archived: archiveMatches, onOpenBed: (id) => { setQuery(""); setSelectedBed(id); }, onViewArchived: (crop) => setArchiveCropView(crop) })) : state.beds.length === 0 ? (React.createElement(EmptyGarden, { onAdd: addBed, onLoadTemplate: () => persist(buildInitialGarden()), onLoadPhoto: () => persist(buildPhotoGarden()) })) : state.beds.some((b) => b.photo) ? (React.createElement(ErrorBoundary, null, React.createElement(PhotoGarden, { beds: state.beds, onSelect: setSelectedBed, onReload: () => persist(buildPhotoGarden()) }))) : (React.createElement(GardenCanvas, { beds: state.beds, cropsFor: cropsFor, editLayout: editLayout, onSelect: setSelectedBed, onUpdateBed: updateBed }))),
         showInfo && React.createElement(InfoModal, { onClose: () => setShowInfo(false) }),
         archiveCropView && (React.createElement(ArchivedCropPanel, { item: archiveCropView, onClose: () => setArchiveCropView(null), onDelete: () => { deleteArchived(archiveCropView.id); setArchiveCropView(null); } })),
         bed && (React.createElement(BedPanel, { bed: bed, crops: cropsFor(bed.id), editLayout: editLayout, onClose: () => setSelectedBed(null), onSetCrops: (c) => setCrops(bed.id, c), onArchiveCrop: (cropId) => archiveCrop(bed.id, cropId), onRenameBed: (name) => updateBed(bed.id, { name }), onRemoveBed: () => removeBed(bed.id) }))));
@@ -365,6 +365,24 @@ function EmptyGarden({ onAdd, onLoadTemplate, onLoadPhoto }) {
                 React.createElement(Plus, { size: 16 }),
                 " Lege bak"))));
 }
+// ── Error boundary: vangt crashes en toont de fout op het scherm ──────
+class ErrorBoundary extends React.Component {
+    constructor(props) { super(props); this.state = { err: null }; }
+    static getDerivedStateFromError(err) { return { err: err }; }
+    componentDidCatch(err, info) { /* opgevangen */ }
+    render() {
+        if (this.state.err) {
+            return React.createElement("div", {
+                style: { margin: 16, padding: 16, background: "#fbe6df", border: "2px solid #a13d2d",
+                    borderRadius: 12, color: "#a13d2d", fontFamily: "system-ui, sans-serif", fontSize: 13, lineHeight: 1.5 },
+            },
+                React.createElement("strong", null, "Er ging iets mis bij het tekenen van de tuin:"),
+                React.createElement("div", { style: { marginTop: 8, wordBreak: "break-word" } },
+                    String(this.state.err && this.state.err.message || this.state.err)));
+        }
+        return this.props.children;
+    }
+}
 // ── Foto-achtergrond met klikbare vakken ──────────────────────────────
 function PhotoGarden({ beds, onSelect, onReload }) {
     const [hover, setHover] = useState(null);
@@ -379,6 +397,8 @@ function PhotoGarden({ beds, onSelect, onReload }) {
         + " · met coördinaten: " + withCoords.length
         + (photoBeds[0] ? " · velden eerste: " + Object.keys(photoBeds[0]).join(",") : "");
     return (React.createElement("div", { style: S.photoWrap },
+        React.createElement("div", { style: { background: "#e53935", color: "#fff", padding: 14, borderRadius: 10, marginBottom: 12, fontWeight: 700, textAlign: "center" } },
+            "TEST v15 — vakken: " + withCoords.length),
         React.createElement("div", { style: S.diagBar }, diag),
         withCoords.length === 0 && React.createElement("button", {
             style: Object.assign({}, S.btnPrimary, { margin: "0 auto 12px", display: "flex" }),
