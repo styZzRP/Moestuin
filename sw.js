@@ -1,4 +1,3 @@
-JS
 // Zelf-uitschakelende service worker: wist alle caches en deregistreert zichzelf.
 // Hierdoor draait de app voortaan altijd verse bestanden van de server.
 self.addEventListener("install", () => self.skipWaiting());
@@ -11,4 +10,3 @@ self.addEventListener("activate", (e) => {
     clients.forEach((c) => c.navigate(c.url));
   })());
 });
- 
