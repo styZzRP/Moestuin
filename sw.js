@@ -1,5 +1,5 @@
 // Service worker — maakt de app offline beschikbaar.
-const CACHE = "moestuin-v2";
+const CACHE = "moestuin-v3";
 
 // Eigen bestanden die altijd in de cache moeten.
 const CORE = [
@@ -7,6 +7,7 @@ const CORE = [
   "./index.html",
   "./app.js",
   "./manifest.json",
+  "./garden-bg.jpg",
   "./icon-180.png",
   "./icon-192.png",
   "./icon-512.png",

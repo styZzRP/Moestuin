@@ -123,6 +123,35 @@ const DISEASES = [
 ];
 const BED_TINTS = ["#7cb342", "#26a69a", "#ef9a3d", "#ec6b5e", "#ab7df0", "#5c9ce0", "#e0577f", "#9ccc4f"];
 const emptyState = { beds: [], crops: {}, archive: [] }; // crops keyed by bedId; archive = verwijderde groenten
+// Klikbare vakken op de achtergrondfoto (in % van de afbeelding: x, y, breedte, hoogte).
+const PHOTO_ZONES = [
+    { name: "Aardbeibed 1", x: 13, y: 13, w: 7.5, h: 20 },
+    { name: "Aardbeibed 2", x: 21, y: 13, w: 7.5, h: 20 },
+    { name: "Kruidenbed", x: 13, y: 36, w: 24, h: 7.5 },
+    { name: "Bed 1", x: 44, y: 13, w: 7.5, h: 27 },
+    { name: "Bed 2", x: 52, y: 13, w: 7, h: 27 },
+    { name: "Bed 3", x: 59, y: 13, w: 6.5, h: 27 },
+    { name: "Bed 4", x: 66, y: 13, w: 7, h: 27 },
+    { name: "Bed 5", x: 73.5, y: 13, w: 6.8, h: 27 },
+    { name: "Bed 6", x: 81, y: 13, w: 7.5, h: 27 },
+    { name: "Fruithaag", x: 90, y: 8, w: 9, h: 80 },
+    { name: "Kas", x: 7, y: 44, w: 28, h: 27 },
+    { name: "Verhoogde bak 1", x: 58, y: 43, w: 20, h: 15 },
+    { name: "Verhoogde bak 2", x: 57, y: 62, w: 26, h: 16 },
+];
+
+// Indeling op basis van de achtergrondfoto: elk vak wordt een klikbare bak.
+function buildPhotoGarden() {
+    const beds = [];
+    const crops = {};
+    PHOTO_ZONES.forEach((z) => {
+        const id = uid();
+        beds.push({ id, name: z.name, photo: true, px: z.x, py: z.y, pw: z.w, ph: z.h });
+        crops[id] = [];
+    });
+    return { beds, crops, archive: [] };
+}
+
 // Startindeling op basis van de luchtfoto van de tuin:
 // rechtsboven 6 lange grondbedden, links daarvan een groter vak,
 // linksonder de kas met daarboven (aansluitend, even breed) een druivenbak,
@@ -260,10 +289,10 @@ function MoestuinApp() {
                             React.createElement(Info, { size: 14 }),
                             " opslag")))),
             React.createElement("div", { style: S.headerActions, className: "app-header-actions" },
-                React.createElement("button", { style: { ...S.btnGhost, ...(editLayout ? S.btnGhostActive : {}) }, onClick: () => setEditLayout((v) => !v) },
+                !state.beds.some((b) => b.photo) && React.createElement("button", { style: { ...S.btnGhost, ...(editLayout ? S.btnGhostActive : {}) }, onClick: () => setEditLayout((v) => !v) },
                     editLayout ? React.createElement(Grid3x3, { size: 16 }) : React.createElement(Move, { size: 16 }),
                     React.createElement("span", { className: "btn-label" }, editLayout ? "Klaar met indelen" : "Indeling wijzigen")),
-                React.createElement("button", { style: S.btnPrimary, onClick: addBed },
+                !state.beds.some((b) => b.photo) && React.createElement("button", { style: S.btnPrimary, onClick: addBed },
                     React.createElement(Plus, { size: 16 }),
                     " ",
                     React.createElement("span", { className: "btn-label" }, "Bak toevoegen")))),
@@ -273,7 +302,7 @@ function MoestuinApp() {
             React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: "Zoek een groente\u2026", style: S.searchInput }),
             query && (React.createElement("button", { style: S.iconBtn, onClick: () => setQuery(""), "aria-label": "Wissen" },
                 React.createElement(X, { size: 18 })))),
-        React.createElement("main", { style: S.main, className: "app-main" }, q ? (React.createElement(SearchResults, { current: currentMatches, archived: archiveMatches, onOpenBed: (id) => { setQuery(""); setSelectedBed(id); }, onViewArchived: (crop) => setArchiveCropView(crop) })) : state.beds.length === 0 ? (React.createElement(EmptyGarden, { onAdd: addBed, onLoadTemplate: () => persist(buildInitialGarden()) })) : (React.createElement(GardenCanvas, { beds: state.beds, cropsFor: cropsFor, editLayout: editLayout, onSelect: setSelectedBed, onUpdateBed: updateBed }))),
+        React.createElement("main", { style: S.main, className: "app-main" }, q ? (React.createElement(SearchResults, { current: currentMatches, archived: archiveMatches, onOpenBed: (id) => { setQuery(""); setSelectedBed(id); }, onViewArchived: (crop) => setArchiveCropView(crop) })) : state.beds.length === 0 ? (React.createElement(EmptyGarden, { onAdd: addBed, onLoadTemplate: () => persist(buildInitialGarden()), onLoadPhoto: () => persist(buildPhotoGarden()) })) : state.beds.some((b) => b.photo) ? (React.createElement(PhotoGarden, { beds: state.beds, onSelect: setSelectedBed })) : (React.createElement(GardenCanvas, { beds: state.beds, cropsFor: cropsFor, editLayout: editLayout, onSelect: setSelectedBed, onUpdateBed: updateBed }))),
         showInfo && React.createElement(InfoModal, { onClose: () => setShowInfo(false) }),
         archiveCropView && (React.createElement(ArchivedCropPanel, { item: archiveCropView, onClose: () => setArchiveCropView(null), onDelete: () => { deleteArchived(archiveCropView.id); setArchiveCropView(null); } })),
         bed && (React.createElement(BedPanel, { bed: bed, crops: cropsFor(bed.id), editLayout: editLayout, onClose: () => setSelectedBed(null), onSetCrops: (c) => setCrops(bed.id, c), onArchiveCrop: (cropId) => archiveCrop(bed.id, cropId), onRenameBed: (name) => updateBed(bed.id, { name }), onRemoveBed: () => removeBed(bed.id) }))));
@@ -302,18 +331,45 @@ function InfoModal({ onClose }) {
                 React.createElement("p", { style: S.infoP }, "Omdat de gegevens op dit apparaat staan, zie je je tuin alleen hier terug \u2014 niet automatisch op een ander apparaat.")),
             React.createElement("button", { style: { ...S.btnPrimary, width: "100%", justifyContent: "center", marginTop: 4 }, onClick: onClose }, "Begrepen"))));
 }
-function EmptyGarden({ onAdd, onLoadTemplate }) {
+function EmptyGarden({ onAdd, onLoadTemplate, onLoadPhoto }) {
     return (React.createElement("div", { style: S.empty },
         React.createElement("div", { style: S.emptyArt }, "\uD83C\uDF31"),
         React.createElement("h2", { style: S.emptyTitle }, "Je tuin is nog leeg"),
-        React.createElement("p", { style: S.emptyText }, "Begin met de indeling van jouw tuin (bedden, kas en verhoogde bakken), of start met \u00E9\u00E9n lege bak. Je kunt alles daarna verslepen, vergroten en hernoemen."),
+        React.createElement("p", { style: S.emptyText }, "Open je tuin als plattegrond met klikbare vakken, laad een schematische indeling, of begin met \u00E9\u00E9n lege bak."),
         React.createElement("div", { style: { display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" } },
-            React.createElement("button", { style: S.btnPrimary, onClick: onLoadTemplate },
+            React.createElement("button", { style: S.btnPrimary, onClick: onLoadPhoto },
                 React.createElement(Grid3x3, { size: 16 }),
-                " Mijn tuinindeling laden"),
+                " Mijn tuin (plattegrond)"),
+            React.createElement("button", { style: S.btnGhost, onClick: onLoadTemplate },
+                React.createElement(Grid3x3, { size: 16 }),
+                " Schematische indeling"),
             React.createElement("button", { style: S.btnGhost, onClick: onAdd },
                 React.createElement(Plus, { size: 16 }),
-                " Lege bak aanmaken"))));
+                " Lege bak"))));
+}
+// ── Foto-achtergrond met klikbare vakken ──────────────────────────────
+function PhotoGarden({ beds, onSelect }) {
+    const [hover, setHover] = useState(null);
+    return (React.createElement("div", { style: S.photoWrap },
+        React.createElement("div", { style: S.photoInner },
+            React.createElement("img", { src: "garden-bg.jpg", alt: "Plattegrond van de moestuin", style: S.photoImg, draggable: false }),
+            beds.filter((b) => b.photo).map((b) => (React.createElement("button", {
+                key: b.id,
+                onClick: () => onSelect(b.id),
+                onPointerEnter: () => setHover(b.id),
+                onPointerLeave: () => setHover((h) => (h === b.id ? null : h)),
+                title: b.name,
+                "aria-label": b.name,
+                style: Object.assign({}, S.photoZone, {
+                    left: b.px + "%", top: b.py + "%", width: b.pw + "%", height: b.ph + "%",
+                    background: hover === b.id ? "rgba(255,255,255,.18)" : "transparent",
+                    boxShadow: hover === b.id ? "inset 0 0 0 3px rgba(255,255,255,.85)" : "none",
+                }),
+            },
+                React.createElement("span", { style: Object.assign({}, S.photoZoneLabel, { opacity: hover === b.id ? 1 : 0 }) }, b.name)
+            ))))),
+        React.createElement("div", { style: S.photoHint }, "Tik op een vak in de tuin om de groenten en het logboek te openen")
+    );
 }
 // ── Tuin-canvas met pan/zoom + sleepbare bakken ───────────────────────
 const WORLD_W = 760, WORLD_H = 560; // logische tuinafmetingen
@@ -827,6 +883,18 @@ const S = {
         background: "repeating-linear-gradient(0deg,#e9dfc4,#e9dfc4 1px,#ece3c9 1px,#ece3c9 26px), repeating-linear-gradient(90deg,#e9dfc4,#e9dfc4 1px,transparent 1px,transparent 26px)" },
     viewport: { position: "absolute", inset: 0, overflow: "hidden", touchAction: "none" },
     world: { position: "absolute", top: 0, left: 0, transformOrigin: "0 0" },
+    photoWrap: { position: "relative", width: "100%" },
+    photoInner: { position: "relative", width: "100%", maxWidth: 760, margin: "0 auto",
+        borderRadius: 16, overflow: "hidden", border: "1px solid #d8c9a0", boxShadow: "0 6px 20px rgba(60,45,20,.15)" },
+    photoImg: { display: "block", width: "100%", height: "auto", userSelect: "none" },
+    photoZone: { position: "absolute", border: "none", padding: 0, cursor: "pointer",
+        borderRadius: 8, transition: "background .12s ease, box-shadow .12s ease",
+        display: "flex", alignItems: "flex-start", justifyContent: "center" },
+    photoZoneLabel: { marginTop: 4, fontSize: 11, fontWeight: 700, color: "#2c2410",
+        background: "rgba(255,255,255,.9)", padding: "2px 7px", borderRadius: 20,
+        whiteSpace: "nowrap", transition: "opacity .12s ease", fontFamily: FONT_BODY, pointerEvents: "none" },
+    photoHint: { textAlign: "center", fontSize: 12.5, color: "#9a8c66", fontStyle: "italic",
+        fontFamily: FONT_DISPLAY, margin: "12px auto 0", maxWidth: 760 },
     canvasHint: { position: "absolute", bottom: 12, left: 14, right: 14, fontSize: 11.5, color: "#9a8c66",
         fontStyle: "italic", pointerEvents: "none", fontFamily: FONT_DISPLAY, lineHeight: 1.4 },
     zoomBar: { position: "absolute", top: 12, right: 12, display: "flex", flexDirection: "column", gap: 6 },
