@@ -1,24 +1,33 @@
 // Service worker — maakt de app offline beschikbaar.
-const CACHE = "moestuin-v4";
+const CACHE = "moestuin-v5";
 
-// Eigen bestanden die altijd in de cache moeten.
+// Kernbestanden die echt nodig zijn (installatie faalt als deze ontbreken).
 const CORE = [
   "./",
   "./index.html",
   "./app.js",
   "./manifest.json",
-  "./garden-bg.jpg",
-  "./icon-180.png",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./icon-maskable-512.png",
   "https://unpkg.com/react@18/umd/react.production.min.js",
   "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js",
 ];
 
+// Optionele bestanden — een ontbrekend bestand laat de installatie niet mislukken.
+const OPTIONAL = [
+  "./garden-bg.jpg",
+  "./garden-bg.jpeg",
+  "./icon-180.png",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./icon-maskable-512.png",
+];
+
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(async (c) => {
+      await c.addAll(CORE);
+      // optionele bestanden stuk voor stuk; fouten negeren
+      await Promise.all(OPTIONAL.map((u) => c.add(u).catch(() => {})));
+    }).then(() => self.skipWaiting())
   );
 });
 

@@ -350,16 +350,19 @@ function EmptyGarden({ onAdd, onLoadTemplate, onLoadPhoto }) {
 // ── Foto-achtergrond met klikbare vakken ──────────────────────────────
 function PhotoGarden({ beds, onSelect }) {
     const [hover, setHover] = useState(null);
-    const [imgError, setImgError] = useState(false);
+    const [srcIdx, setSrcIdx] = useState(0);
+    // Probeer meerdere bestandsnamen, want de upload kan de extensie hebben gewijzigd.
+    const candidates = ["garden-bg.jpg", "garden-bg.jpeg", "garden-bg.png", "garden-bg.JPG", "garden-bg.JPEG"];
+    const imgError = srcIdx >= candidates.length;
     return (React.createElement("div", { style: S.photoWrap },
         React.createElement("div", { style: S.photoInner },
-            React.createElement("img", {
-                src: "garden-bg.jpg", alt: "Plattegrond van de moestuin", style: S.photoImg, draggable: false,
-                onError: () => setImgError(true), onLoad: () => setImgError(false),
+            !imgError && React.createElement("img", {
+                src: candidates[srcIdx], alt: "Plattegrond van de moestuin", style: S.photoImg, draggable: false,
+                onError: () => setSrcIdx((i) => i + 1),
             }),
             imgError && React.createElement("div", { style: S.photoErr },
-                "De achtergrondafbeelding (garden-bg.jpg) kon niet worden geladen. ",
-                "Controleer of dit bestand naast index.html staat. ",
+                "De achtergrondafbeelding kon niet worden geladen. ",
+                "Controleer of het bestand (garden-bg.jpg) naast index.html staat. ",
                 "De vakken hieronder werken wel."),
             beds.filter((b) => b.photo).map((b) => (React.createElement("button", {
                 key: b.id,
