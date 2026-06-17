@@ -33,12 +33,19 @@
   <!-- React via CDN -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <!-- Babel om de JSX in de browser te transcompileren -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <script>
     // verberg laadscherm zodra de app gemonteerd is
     window.__appReady = () => { const b = document.getElementById('boot'); if (b) b.classList.add('hide'); };
+    // toon een leesbare foutmelding als er iets misgaat bij het opstarten
+    window.addEventListener('error', (e) => {
+      const b = document.getElementById('boot');
+      if (b && !b.classList.contains('hide')) {
+        b.innerHTML = '<div style="max-width:320px;text-align:center;padding:20px;font-size:14px;line-height:1.5">' +
+          '⚠️ De app kon niet starten.<br><br>Controleer je internetverbinding bij de eerste keer openen, ' +
+          'en herlaad de pagina.<br><br><small style="opacity:.7">' + (e.message || '') + '</small></div>';
+      }
+    });
     // Service worker registreren (offline gebruik)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -47,7 +54,8 @@
     }
   </script>
 
-  <!-- De app zelf, als JSX, getranscompileerd door Babel -->
-  <script type="text/babel" data-presets="react" src="app.jsx"></script>
+  <!-- De app, kant-en-klaar getranspileerd (geen Babel nodig) -->
+  <script src="app.js"></script>
+
 </body>
 </html>

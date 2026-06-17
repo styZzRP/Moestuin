@@ -1,11 +1,11 @@
 // Service worker — maakt de app offline beschikbaar.
-const CACHE = "moestuin-v1";
+const CACHE = "moestuin-v2";
 
 // Eigen bestanden die altijd in de cache moeten.
 const CORE = [
   "./",
   "./index.html",
-  "./app.jsx",
+  "./app.js",
   "./manifest.json",
   "./icon-180.png",
   "./icon-192.png",
@@ -13,7 +13,6 @@ const CORE = [
   "./icon-maskable-512.png",
   "https://unpkg.com/react@18/umd/react.production.min.js",
   "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js",
-  "https://unpkg.com/@babel/standalone/babel.min.js",
 ];
 
 self.addEventListener("install", (e) => {
