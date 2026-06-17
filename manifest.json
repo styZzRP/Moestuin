@@ -1,0 +1,16 @@
+{
+  "name": "De Moestuin",
+  "short_name": "Moestuin",
+  "description": "Beheer je moestuin: bedden, groenten, logboek en foto's.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3eddd",
+  "theme_color": "#6b8e3d",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

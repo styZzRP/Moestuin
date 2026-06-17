@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <title>De Moestuin</title>
+  <meta name="description" content="Beheer je moestuin: bedden, groenten en logboek." />
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#6b8e3d" />
+
+  <!-- iOS: toevoegen aan beginscherm -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Moestuin" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+
+  <style>
+    html, body { margin: 0; padding: 0; background: #f3eddd; }
+    /* veilige zones voor iPhone-notch */
+    #root { min-height: 100vh; }
+    /* laadscherm */
+    #boot { position: fixed; inset: 0; display: grid; place-items: center;
+      font-family: system-ui, sans-serif; color: #6b8e3d; background: #f3eddd; z-index: 9999; }
+    #boot.hide { display: none; }
+  </style>
+</head>
+<body>
+  <div id="boot">🌱 Moestuin laden…</div>
+  <div id="root"></div>
+
+  <!-- React via CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel om de JSX in de browser te transcompileren -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script>
+    // verberg laadscherm zodra de app gemonteerd is
+    window.__appReady = () => { const b = document.getElementById('boot'); if (b) b.classList.add('hide'); };
+    // Service worker registreren (offline gebruik)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
+
+  <!-- De app zelf, als JSX, getranscompileerd door Babel -->
+  <script type="text/babel" data-presets="react" src="app.jsx"></script>
+</body>
+</html>
