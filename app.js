@@ -299,7 +299,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v16 ",
+                        " · v17 ",
                         React.createElement("button", { style: S.infoBtn, onClick: () => setShowInfo(true), "aria-label": "Over opslag" },
                             React.createElement(Info, { size: 14 }),
                             " opslag"),
@@ -388,40 +388,57 @@ function PhotoGarden({ beds, onSelect, onReload }) {
     const [hover, setHover] = useState(null);
     const [srcIdx, setSrcIdx] = useState(0);
     const candidates = ["garden-bg.jpeg", "garden-bg.jpg", "garden-bg.png", "garden-bg.JPEG", "garden-bg.JPG"];
-    const imgError = srcIdx >= candidates.length;
     const photoBeds = beds.filter((b) => b.photo);
     const withCoords = photoBeds.filter((b) => b.pw != null);
-    return (React.createElement("div", { style: S.photoWrap },
-        withCoords.length === 0 && React.createElement("button", {
-            style: Object.assign({}, S.btnPrimary, { margin: "0 auto 12px", display: "flex" }),
-            onClick: () => onReload && onReload(),
-        }, "Plattegrond opnieuw laden"),
-        React.createElement("div", { style: { position: "relative", width: "100%", maxWidth: 760, margin: "0 auto",
-            paddingBottom: "100%", height: 0, borderRadius: 16, overflow: "hidden",
-            border: "1px solid #d8c9a0", boxShadow: "0 6px 20px rgba(60,45,20,.15)", backgroundColor: "#cdd6a3" } },
-            !imgError && React.createElement("img", {
-                src: candidates[srcIdx], alt: "Plattegrond van de moestuin",
-                style: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" },
-                draggable: false, onError: () => setSrcIdx((i) => i + 1),
-            }),
-            withCoords.map((b) => (React.createElement("button", {
-                key: b.id,
-                onClick: () => onSelect(b.id),
-                onPointerEnter: () => setHover(b.id),
-                onPointerLeave: () => setHover((h) => (h === b.id ? null : h)),
-                title: b.name,
-                "aria-label": b.name,
-                style: {
-                    position: "absolute", border: "none", padding: 0, cursor: "pointer", borderRadius: 8,
-                    left: b.px + "%", top: b.py + "%", width: b.pw + "%", height: b.ph + "%",
-                    background: hover === b.id ? "rgba(255,255,255,.22)" : "transparent",
-                    boxShadow: hover === b.id ? "inset 0 0 0 3px rgba(255,255,255,.9)" : "inset 0 0 0 2px rgba(255,255,255,.4)",
-                    transition: "background .12s ease, box-shadow .12s ease",
-                },
-            })))
-        )),
-        React.createElement("div", { style: S.photoHint }, "Tik op een vak in de tuin om de groenten en het logboek te openen")
+
+    const zoneButton = (b) => React.createElement("button", {
+        key: b.id,
+        onClick: () => onSelect(b.id),
+        onPointerEnter: () => setHover(b.id),
+        onPointerLeave: () => setHover((h) => (h === b.id ? null : h)),
+        title: b.name,
+        "aria-label": b.name,
+        style: {
+            position: "absolute", border: "none", padding: 0, cursor: "pointer", borderRadius: 8,
+            left: b.px + "%", top: b.py + "%", width: b.pw + "%", height: b.ph + "%",
+            background: hover === b.id ? "rgba(255,255,255,.22)" : "transparent",
+            boxShadow: hover === b.id ? "inset 0 0 0 3px rgba(255,255,255,.9)" : "inset 0 0 0 2px rgba(255,255,255,.45)",
+            transition: "background .12s ease, box-shadow .12s ease",
+        },
+    });
+
+    const img = React.createElement("img", {
+        src: candidates[srcIdx],
+        alt: "Plattegrond van de moestuin",
+        style: { display: "block", width: "100%", height: "auto" },
+        draggable: false,
+        onError: () => setSrcIdx((i) => i + 1),
+    });
+
+    const overlay = React.createElement("div",
+        { style: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 } },
+        withCoords.map(zoneButton)
     );
+
+    const container = React.createElement("div",
+        { style: { position: "relative", width: "100%", maxWidth: 760, margin: "0 auto",
+            borderRadius: 16, overflow: "hidden", border: "1px solid #d8c9a0",
+            boxShadow: "0 6px 20px rgba(60,45,20,.15)", backgroundColor: "#cdd6a3", fontSize: 0 } },
+        img,
+        overlay
+    );
+
+    const reloadBtn = withCoords.length === 0
+        ? React.createElement("button",
+            { style: Object.assign({}, S.btnPrimary, { margin: "0 auto 12px", display: "flex" }),
+              onClick: () => onReload && onReload() },
+            "Plattegrond opnieuw laden")
+        : null;
+
+    const hint = React.createElement("div", { style: S.photoHint },
+        "Tik op een vak in de tuin om de groenten en het logboek te openen");
+
+    return React.createElement("div", { style: S.photoWrap }, reloadBtn, container, hint);
 }
 // ── Tuin-canvas met pan/zoom + sleepbare bakken ───────────────────────
 const WORLD_W = 760, WORLD_H = 560; // logische tuinafmetingen
