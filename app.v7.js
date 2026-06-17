@@ -299,7 +299,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v7 ",
+                        " · v8 ",
                         React.createElement("button", { style: S.infoBtn, onClick: () => setShowInfo(true), "aria-label": "Over opslag" },
                             React.createElement(Info, { size: 14 }),
                             " opslag"),
@@ -1051,5 +1051,7 @@ const S = {
 };
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(React.createElement(MoestuinApp, null));
+if (window.__bootTimer)
+    clearTimeout(window.__bootTimer);
 if (window.__appReady)
     window.__appReady();

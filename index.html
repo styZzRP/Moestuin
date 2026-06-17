@@ -37,40 +37,29 @@
   <script>
     // verberg laadscherm zodra de app gemonteerd is
     window.__appReady = () => { const b = document.getElementById('boot'); if (b) b.classList.add('hide'); };
-    // toon een leesbare foutmelding als er iets misgaat bij het opstarten
-    window.addEventListener('error', (e) => {
+    function bootError(msg) {
       const b = document.getElementById('boot');
       if (b && !b.classList.contains('hide')) {
-        b.innerHTML = '<div style="max-width:320px;text-align:center;padding:20px;font-size:14px;line-height:1.5">' +
-          '⚠️ De app kon niet starten.<br><br>Controleer je internetverbinding bij de eerste keer openen, ' +
-          'en herlaad de pagina.<br><br><small style="opacity:.7">' + (e.message || '') + '</small></div>';
+        b.innerHTML = '<div style="max-width:340px;text-align:center;padding:20px;font-size:14px;line-height:1.5">' +
+          '\u26A0\uFE0F De app kon niet starten.<br><br>Trek de pagina naar beneden om te verversen. ' +
+          'Lukt dat niet, sluit dan het tabblad en open het opnieuw.<br><br>' +
+          '<small style="opacity:.7">' + (msg || '') + '</small></div>';
       }
-    });
-    // Service worker registreren (offline gebruik) + direct op updates controleren
+    }
+    window.addEventListener('error', (e) => bootError(e.message));
+    // veiligheidsnet: als de app na 8s niet gestart is, toon een melding i.p.v. eeuwig laden
+    window.__bootTimer = setTimeout(function () { bootError('Time-out bij laden van app.js'); }, 8000);
+
+    // Service worker registreren (offline gebruik). Bewust simpel: geen auto-reload.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').then((reg) => {
-          reg.update();
-          reg.addEventListener('updatefound', () => {
-            const nw = reg.installing;
-            if (nw) nw.addEventListener('statechange', () => {
-              if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-                // nieuwe versie klaar — activeer en herlaad eenmalig
-                nw.postMessage && nw.postMessage('skipWaiting');
-              }
-            });
-          });
-        }).catch(() => {});
-        let refreshed = false;
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (refreshed) return; refreshed = true; location.reload();
-        });
+        navigator.serviceWorker.register('sw.js').catch(() => {});
       });
     }
   </script>
 
-  <!-- De app, kant-en-klaar getranspileerd (versie in naam om caching te omzeilen) -->
-  <script src="app.v7.js"></script>
+  <!-- De app, kant-en-klaar getranspileerd -->
+  <script src="app.v7.js" onerror="bootError('app.v7.js niet gevonden op de server')"></script>
 
 </body>
 </html>
