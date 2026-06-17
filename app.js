@@ -212,6 +212,42 @@ function MoestuinApp() {
         // herlaad zonder cache
         location.reload(true);
     };
+    // Back-up: hele tuin als bestand opslaan
+    const exportData = () => {
+        try {
+            const json = JSON.stringify(state, null, 2);
+            const blob = new Blob([json], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            const d = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = "moestuin-backup-" + d + ".json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (e) {
+            alert("Back-up maken mislukte.");
+        }
+    };
+    // Back-up terugzetten uit bestand
+    const importData = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const data = JSON.parse(reader.result);
+                if (!data || !Array.isArray(data.beds)) throw new Error("ongeldig");
+                if (!confirm("Back-up terugzetten? Dit vervangt je huidige tuin volledig.")) return;
+                persist({ archive: [], ...data });
+            } catch (err) {
+                alert("Dit bestand is geen geldige moestuin-back-up.");
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+    };
     useEffect(() => {
         loadState().then((s) => {
             if (s) {
@@ -314,13 +350,20 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v19 ",
+                        " · v20 ",
                         React.createElement("button", { style: S.infoBtn, onClick: () => setShowInfo(true), "aria-label": "Over opslag" },
                             React.createElement(Info, { size: 14 }),
                             " opslag"),
                         React.createElement("button", { style: S.infoBtn, onClick: forceUpdate, "aria-label": "App bijwerken" },
                             React.createElement(Grid3x3, { size: 14 }),
-                            " update")))),
+                            " update"),
+                        React.createElement("button", { style: S.infoBtn, onClick: exportData, "aria-label": "Back-up maken" },
+                            React.createElement(Archive, { size: 14 }),
+                            " back-up"),
+                        React.createElement("label", { style: { ...S.infoBtn, cursor: "pointer" }, "aria-label": "Back-up terugzetten" },
+                            React.createElement(Plus, { size: 14 }),
+                            " herstel",
+                            React.createElement("input", { type: "file", accept: "application/json,.json", onChange: importData, style: { display: "none" } }))))),
             React.createElement("div", { style: S.headerActions, className: "app-header-actions" },
                 !state.beds.some((b) => b.photo) && React.createElement("button", { style: { ...S.btnGhost, ...(editLayout ? S.btnGhostActive : {}) }, onClick: () => setEditLayout((v) => !v) },
                     editLayout ? React.createElement(Grid3x3, { size: 16 }) : React.createElement(Move, { size: 16 }),
@@ -670,6 +713,7 @@ function CropCard({ crop, open, onToggle, onUpdate, onRemove }) {
     const [busy, setBusy] = useState(false);
     const [viewPhoto, setViewPhoto] = useState(null);
     const [confirmRemove, setConfirmRemove] = useState(false);
+    const [editingId, setEditingId] = useState(null);
     const onPickPhotos = async (e) => {
         const files = Array.from(e.target.files || []);
         if (!files.length)
@@ -687,19 +731,33 @@ function CropCard({ crop, open, onToggle, onUpdate, onRemove }) {
             e.target.value = "";
         }
     };
+    const resetForm = () => {
+        setEditingId(null); setLogType("zaai"); setLogDate(today());
+        setLogNote(""); setLogPhotos([]); setDisease(DISEASES[0]); setDiseaseOther("");
+    };
+    const startEdit = (l) => {
+        setEditingId(l.id);
+        setLogType(l.type);
+        setLogDate(l.date);
+        setLogNote(l.note || "");
+        setLogPhotos(l.photos || []);
+        if (l.type === "ziekte" && l.disease) {
+            if (DISEASES.indexOf(l.disease) >= 0) { setDisease(l.disease); setDiseaseOther(""); }
+            else { setDisease("Anders…"); setDiseaseOther(l.disease); }
+        }
+    };
     const addLog = () => {
         const entry = {
-            id: uid(), type: logType, date: logDate, note: logNote.trim(), photos: logPhotos,
+            id: editingId || uid(), type: logType, date: logDate, note: logNote.trim(), photos: logPhotos,
         };
         if (logType === "ziekte") {
             entry.disease = disease === "Anders…" ? (diseaseOther.trim() || "Onbekend") : disease;
         }
-        onUpdate({ logs: [...crop.logs, entry].sort((a, b) => a.date.localeCompare(b.date)) });
-        setLogNote("");
-        setLogPhotos([]);
-        setDiseaseOther("");
+        const others = editingId ? crop.logs.filter((l) => l.id !== editingId) : crop.logs;
+        onUpdate({ logs: [...others, entry].sort((a, b) => a.date.localeCompare(b.date)) });
+        resetForm();
     };
-    const removeLog = (id) => onUpdate({ logs: crop.logs.filter((l) => l.id !== id) });
+    const removeLog = (id) => { onUpdate({ logs: crop.logs.filter((l) => l.id !== id) }); if (editingId === id) resetForm(); };
     const lastByType = (k) => {
         const items = crop.logs.filter((l) => l.type === k);
         return items.length ? items[items.length - 1].date : null;
@@ -733,10 +791,14 @@ function CropCard({ crop, open, onToggle, onUpdate, onRemove }) {
                             React.createElement("span", { style: S.logDate }, fmtLong(l.date))),
                         l.note && React.createElement("div", { style: S.logNote }, l.note),
                         l.photos && l.photos.length > 0 && (React.createElement("div", { style: S.photoStrip }, l.photos.map((src, i) => (React.createElement("img", { key: i, src: src, alt: "", style: S.photoThumb, onClick: () => setViewPhoto(src) })))))),
-                    React.createElement("button", { style: S.logDel, onClick: () => removeLog(l.id), "aria-label": "Verwijderen" },
-                        React.createElement(X, { size: 14 }))));
+                    React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 2 } },
+                        React.createElement("button", { style: S.logEdit, onClick: () => startEdit(l), "aria-label": "Wijzigen", title: "Wijzigen" },
+                            React.createElement(Pencil, { size: 13 })),
+                        React.createElement("button", { style: S.logDel, onClick: () => removeLog(l.id), "aria-label": "Verwijderen", title: "Verwijderen" },
+                            React.createElement(X, { size: 14 })))));
             })),
             React.createElement("div", { style: S.logForm },
+                editingId && React.createElement("div", { style: { fontSize: 12.5, fontWeight: 600, color: "#6b8e3d", marginBottom: 8 } }, "Logboek-item wijzigen"),
                 React.createElement("div", { style: S.typeRow }, LOG_TYPES.map(({ key, label, icon: Icon, color }) => (React.createElement("button", { key: key, onClick: () => setLogType(key), style: {
                         ...S.typeBtn,
                         ...(logType === key ? { background: color, color: "#fff", borderColor: color } : {}),
@@ -750,8 +812,9 @@ function CropCard({ crop, open, onToggle, onUpdate, onRemove }) {
                 React.createElement("div", { style: S.logFormBottom },
                     React.createElement("input", { type: "date", value: logDate, onChange: (e) => setLogDate(e.target.value), style: S.dateInput }),
                     React.createElement("button", { style: S.btnPrimary, onClick: addLog },
-                        React.createElement(Plus, { size: 16 }),
-                        " Toevoegen")),
+                        editingId ? React.createElement(Pencil, { size: 15 }) : React.createElement(Plus, { size: 16 }),
+                        editingId ? " Opslaan" : " Toevoegen"),
+                    editingId && React.createElement("button", { style: S.btnGhostSmall, onClick: resetForm }, "Annuleren")),
                 React.createElement("textarea", { value: logNote, onChange: (e) => setLogNote(e.target.value), onKeyDown: (e) => (e.key === "Enter" && (e.metaKey || e.ctrlKey)) && addLog(), placeholder: "Notitie of bevinding\u2026", style: S.logTextarea, rows: 3 }),
                 logPhotos.length > 0 && (React.createElement("div", { style: S.photoStrip }, logPhotos.map((src, i) => (React.createElement("div", { key: i, style: S.previewWrap },
                     React.createElement("img", { src: src, alt: "", style: S.photoThumb }),
@@ -1064,6 +1127,7 @@ const S = {
     logDate: { fontSize: 12, color: "#8a7d5c" },
     logNote: { fontSize: 13, color: "#5d5238", marginTop: 2, lineHeight: 1.45 },
     logDel: { background: "transparent", border: "none", color: "#bcae88", cursor: "pointer", padding: 4, flexShrink: 0 },
+    logEdit: { background: "transparent", border: "none", color: "#9a8c66", cursor: "pointer", padding: 4, flexShrink: 0 },
     logForm: { marginTop: 10, padding: 10, borderRadius: 10, border: "1px solid #e6dabb", background: "#f5efdd" },
     typeRow: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 },
     typeBtn: { display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12.5, padding: "6px 10px",
