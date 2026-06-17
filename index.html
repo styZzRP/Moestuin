@@ -50,16 +50,19 @@
     // veiligheidsnet: als de app na 8s niet gestart is, toon een melding i.p.v. eeuwig laden
     window.__bootTimer = setTimeout(function () { bootError('Time-out bij laden van app.js'); }, 8000);
 
-    // Service worker registreren (offline gebruik). Bewust simpel: geen auto-reload.
+    // Oude service workers en caches eenmalig opruimen (die zorgden voor verouderde versies).
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
-      });
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((r) => r.unregister());
+      }).catch(() => {});
+    }
+    if (window.caches && caches.keys) {
+      caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
     }
   </script>
 
-  <!-- De app, kant-en-klaar getranspileerd -->
-  <script src="app.js" onerror="bootError('app.js niet gevonden op de server')"></script>
+  <!-- De app, kant-en-klaar getranspileerd. Cache-buster v15 dwingt verse download af. -->
+  <script src="app.js?v=15" onerror="bootError('app.js niet gevonden op de server')"></script>
 
 </body>
 </html>
