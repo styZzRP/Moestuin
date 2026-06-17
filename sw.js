@@ -1,5 +1,5 @@
 // Service worker — maakt de app offline beschikbaar.
-const CACHE = "moestuin-v12";
+const CACHE = "moestuin-v13";
 
 // Kernbestanden die echt nodig zijn (installatie faalt als deze ontbreken).
 const CORE = [

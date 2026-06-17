@@ -299,7 +299,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v12 ",
+                        " · v13 ",
                         React.createElement("button", { style: S.infoBtn, onClick: () => setShowInfo(true), "aria-label": "Over opslag" },
                             React.createElement(Info, { size: 14 }),
                             " opslag"),
@@ -385,6 +385,7 @@ function PhotoGarden({ beds, onSelect, onReload }) {
             onClick: () => onReload && onReload(),
         }, "Plattegrond opnieuw laden"),
         React.createElement("div", { style: S.photoInner },
+            React.createElement("div", { style: S.photoSpacer }),
             !imgError && React.createElement("img", {
                 src: candidates[srcIdx], alt: "Plattegrond van de moestuin", style: S.photoImg, draggable: false,
                 onError: () => setSrcIdx((i) => i + 1),
@@ -400,9 +401,8 @@ function PhotoGarden({ beds, onSelect, onReload }) {
                     "aria-label": b.name,
                     style: Object.assign({}, S.photoZone, {
                         left: b.px + "%", top: b.py + "%", width: b.pw + "%", height: b.ph + "%",
-                        background: hover === b.id ? "rgba(255,255,255,.18)" : (imgError ? "rgba(107,142,61,.2)" : "transparent"),
-                        boxShadow: hover === b.id ? "inset 0 0 0 3px rgba(255,255,255,.85)"
-                            : (imgError ? "inset 0 0 0 2px rgba(107,142,61,.6)" : "none"),
+                        background: hover === b.id ? "rgba(255,255,255,.25)" : "rgba(107,142,61,.15)",
+                        boxShadow: hover === b.id ? "inset 0 0 0 3px rgba(255,255,255,.9)" : "inset 0 0 0 2px rgba(107,142,61,.55)",
                     }),
                 },
                     React.createElement("span", { style: Object.assign({}, S.photoZoneLabel, { opacity: (hover === b.id || imgError) ? 1 : 0 }) }, b.name)
@@ -930,10 +930,11 @@ const S = {
     diagBar: { background: "#fff8e6", border: "1px solid #e2d6b6", borderRadius: 10,
         padding: "10px 12px", fontSize: 12, color: "#6b5f42", lineHeight: 1.4, marginBottom: 12,
         fontFamily: FONT_BODY, wordBreak: "break-word" },
-    photoInner: { position: "relative", width: "100%", maxWidth: 760, margin: "0 auto", minHeight: 200,
+    photoInner: { position: "relative", width: "100%", maxWidth: 760, margin: "0 auto",
         borderRadius: 16, overflow: "hidden", border: "1px solid #d8c9a0", boxShadow: "0 6px 20px rgba(60,45,20,.15)",
-        backgroundColor: "#cdd6a3", lineHeight: 0 },
-    photoImg: { display: "block", width: "100%", height: "auto", userSelect: "none" },
+        backgroundColor: "#cdd6a3" },
+    photoSpacer: { display: "block", width: "100%", paddingTop: "100%" },
+    photoImg: { position: "absolute", inset: 0, display: "block", width: "100%", height: "100%", objectFit: "cover", userSelect: "none" },
     photoFallback: { display: "block", width: "100%", paddingTop: "100%" },
     photoLayer: { position: "absolute", top: 0, left: 0, width: "100%", height: "100%" },
     photoErr: { position: "absolute", top: 10, left: 10, right: 10, zIndex: 5, padding: "10px 12px",
