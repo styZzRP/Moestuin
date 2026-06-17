@@ -299,7 +299,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v15 ",
+                        " · v16 ",
                         React.createElement("button", { style: S.infoBtn, onClick: () => setShowInfo(true), "aria-label": "Over opslag" },
                             React.createElement(Info, { size: 14 }),
                             " opslag"),
@@ -391,47 +391,36 @@ function PhotoGarden({ beds, onSelect, onReload }) {
     const imgError = srcIdx >= candidates.length;
     const photoBeds = beds.filter((b) => b.photo);
     const withCoords = photoBeds.filter((b) => b.pw != null);
-    // Diagnose: laat in gewone tekst zien wat er in de data zit (kan niet instorten).
-    const diag = "Diagnose — totaal bakken: " + beds.length
-        + " · met photo: " + photoBeds.length
-        + " · met coördinaten: " + withCoords.length
-        + (photoBeds[0] ? " · velden eerste: " + Object.keys(photoBeds[0]).join(",") : "");
     return (React.createElement("div", { style: S.photoWrap },
-        React.createElement("div", { style: { background: "#e53935", color: "#fff", padding: 14, borderRadius: 10, marginBottom: 12, fontWeight: 700, textAlign: "center" } },
-            "TEST v15 — vakken: " + withCoords.length),
-        React.createElement("div", { style: S.diagBar }, diag),
         withCoords.length === 0 && React.createElement("button", {
             style: Object.assign({}, S.btnPrimary, { margin: "0 auto 12px", display: "flex" }),
             onClick: () => onReload && onReload(),
         }, "Plattegrond opnieuw laden"),
-        React.createElement("div", { style: S.photoInner },
-            React.createElement("div", { style: S.photoSpacer }),
+        React.createElement("div", { style: { position: "relative", width: "100%", maxWidth: 760, margin: "0 auto",
+            paddingBottom: "100%", height: 0, borderRadius: 16, overflow: "hidden",
+            border: "1px solid #d8c9a0", boxShadow: "0 6px 20px rgba(60,45,20,.15)", backgroundColor: "#cdd6a3" } },
             !imgError && React.createElement("img", {
-                src: candidates[srcIdx], alt: "Plattegrond van de moestuin", style: S.photoImg, draggable: false,
-                onError: () => setSrcIdx((i) => i + 1),
+                src: candidates[srcIdx], alt: "Plattegrond van de moestuin",
+                style: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" },
+                draggable: false, onError: () => setSrcIdx((i) => i + 1),
             }),
-            imgError && React.createElement("div", { style: S.photoFallback }),
-            React.createElement("div", { style: S.photoLayer },
-                withCoords.map((b) => (React.createElement("button", {
-                    key: b.id,
-                    onClick: () => onSelect(b.id),
-                    onPointerEnter: () => setHover(b.id),
-                    onPointerLeave: () => setHover((h) => (h === b.id ? null : h)),
-                    title: b.name,
-                    "aria-label": b.name,
-                    style: Object.assign({}, S.photoZone, {
-                        left: b.px + "%", top: b.py + "%", width: b.pw + "%", height: b.ph + "%",
-                        background: hover === b.id ? "rgba(255,255,255,.25)" : "rgba(107,142,61,.15)",
-                        boxShadow: hover === b.id ? "inset 0 0 0 3px rgba(255,255,255,.9)" : "inset 0 0 0 2px rgba(107,142,61,.55)",
-                    }),
+            withCoords.map((b) => (React.createElement("button", {
+                key: b.id,
+                onClick: () => onSelect(b.id),
+                onPointerEnter: () => setHover(b.id),
+                onPointerLeave: () => setHover((h) => (h === b.id ? null : h)),
+                title: b.name,
+                "aria-label": b.name,
+                style: {
+                    position: "absolute", border: "none", padding: 0, cursor: "pointer", borderRadius: 8,
+                    left: b.px + "%", top: b.py + "%", width: b.pw + "%", height: b.ph + "%",
+                    background: hover === b.id ? "rgba(255,255,255,.22)" : "transparent",
+                    boxShadow: hover === b.id ? "inset 0 0 0 3px rgba(255,255,255,.9)" : "inset 0 0 0 2px rgba(255,255,255,.4)",
+                    transition: "background .12s ease, box-shadow .12s ease",
                 },
-                    React.createElement("span", { style: Object.assign({}, S.photoZoneLabel, { opacity: (hover === b.id || imgError) ? 1 : 0 }) }, b.name)
-                )))))),
-        React.createElement("div", { style: S.photoHint },
-            "Tik op een vak in de tuin om de groenten en het logboek te openen",
-            React.createElement("br"),
-            React.createElement("span", { style: { fontSize: 11, opacity: 0.8 } },
-                "[bakken: " + beds.length + " · photo: " + photoBeds.length + " · coords: " + withCoords.length + "]"))
+            })))
+        )),
+        React.createElement("div", { style: S.photoHint }, "Tik op een vak in de tuin om de groenten en het logboek te openen")
     );
 }
 // ── Tuin-canvas met pan/zoom + sleepbare bakken ───────────────────────
