@@ -136,6 +136,7 @@ const PHOTO_ZONES = [
     { name: "Bed 6", x: 82.5, y: 12, w: 7, h: 28 },
     { name: "Fruithaag", x: 90.5, y: 7, w: 8, h: 82 },
     { name: "Kas", x: 8, y: 45, w: 27, h: 26 },
+    { name: "Bloembak", x: 39, y: 67, w: 9, h: 12 },
     { name: "Verhoogde bak 1", x: 58, y: 46, w: 27, h: 12 },
     { name: "Verhoogde bak 2", x: 60, y: 63, w: 27, h: 15 },
 ];
@@ -264,6 +265,17 @@ function MoestuinApp() {
                         }
                         return b;
                     });
+                    // Nieuwe foto-zones die nog niet bestaan, toevoegen (bijv. later toegevoegde bloembak).
+                    const bestaande = {};
+                    next.beds.forEach((b) => { if (b.photo) bestaande[b.name] = true; });
+                    if (!next.crops) next.crops = {};
+                    PHOTO_ZONES.forEach((z) => {
+                        if (!bestaande[z.name]) {
+                            const id = uid();
+                            next.beds.push({ id, name: z.name, photo: true, px: z.x, py: z.y, pw: z.w, ph: z.h });
+                            next.crops[id] = [];
+                        }
+                    });
                 }
                 setState(next);
             }
@@ -350,7 +362,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v21"))),
+                        " · v22"))),
             React.createElement("div", { style: S.headerActions, className: "app-header-actions" },
                 !state.beds.some((b) => b.photo) && React.createElement("button", { style: { ...S.btnGhost, ...(editLayout ? S.btnGhostActive : {}) }, onClick: () => setEditLayout((v) => !v) },
                     editLayout ? React.createElement(Grid3x3, { size: 16 }) : React.createElement(Move, { size: 16 }),
@@ -457,8 +469,8 @@ function PhotoGarden({ beds, onSelect, onReload }) {
         style: {
             position: "absolute", border: "none", padding: 0, cursor: "pointer", borderRadius: 8,
             left: b.px + "%", top: b.py + "%", width: b.pw + "%", height: b.ph + "%",
-            background: hover === b.id ? "rgba(255,255,255,.22)" : "transparent",
-            boxShadow: hover === b.id ? "inset 0 0 0 3px rgba(255,255,255,.9)" : "inset 0 0 0 2px rgba(255,255,255,.45)",
+            background: hover === b.id ? "rgba(255,255,255,.2)" : "transparent",
+            boxShadow: hover === b.id ? "inset 0 0 0 3px rgba(255,255,255,.85)" : "none",
             transition: "background .12s ease, box-shadow .12s ease",
         },
     });
