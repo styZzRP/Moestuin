@@ -1,11 +1,11 @@
 // Service worker — maakt de app offline beschikbaar.
-const CACHE = "moestuin-v6";
+const CACHE = "moestuin-v7";
 
 // Kernbestanden die echt nodig zijn (installatie faalt als deze ontbreken).
 const CORE = [
   "./",
   "./index.html",
-  "./app.js",
+  "./app.v7.js",
   "./manifest.json",
   "https://unpkg.com/react@18/umd/react.production.min.js",
   "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js",
@@ -13,8 +13,8 @@ const CORE = [
 
 // Optionele bestanden — een ontbrekend bestand laat de installatie niet mislukken.
 const OPTIONAL = [
-  "./garden-bg.jpg",
   "./garden-bg.jpeg",
+  "./garden-bg.jpg",
   "./icon-180.png",
   "./icon-192.png",
   "./icon-512.png",

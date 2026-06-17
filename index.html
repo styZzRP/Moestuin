@@ -46,16 +46,31 @@
           'en herlaad de pagina.<br><br><small style="opacity:.7">' + (e.message || '') + '</small></div>';
       }
     });
-    // Service worker registreren (offline gebruik)
+    // Service worker registreren (offline gebruik) + direct op updates controleren
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        navigator.serviceWorker.register('sw.js').then((reg) => {
+          reg.update();
+          reg.addEventListener('updatefound', () => {
+            const nw = reg.installing;
+            if (nw) nw.addEventListener('statechange', () => {
+              if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                // nieuwe versie klaar — activeer en herlaad eenmalig
+                nw.postMessage && nw.postMessage('skipWaiting');
+              }
+            });
+          });
+        }).catch(() => {});
+        let refreshed = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshed) return; refreshed = true; location.reload();
+        });
       });
     }
   </script>
 
-  <!-- De app, kant-en-klaar getranspileerd (geen Babel nodig) -->
-  <script src="app.js"></script>
+  <!-- De app, kant-en-klaar getranspileerd (versie in naam om caching te omzeilen) -->
+  <script src="app.v7.js"></script>
 
 </body>
 </html>
