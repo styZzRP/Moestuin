@@ -299,7 +299,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v8 ",
+                        " · v9 ",
                         React.createElement("button", { style: S.infoBtn, onClick: () => setShowInfo(true), "aria-label": "Over opslag" },
                             React.createElement(Info, { size: 14 }),
                             " opslag"),
@@ -369,20 +369,34 @@ function EmptyGarden({ onAdd, onLoadTemplate, onLoadPhoto }) {
 function PhotoGarden({ beds, onSelect }) {
     const [hover, setHover] = useState(null);
     const [srcIdx, setSrcIdx] = useState(0);
-    // Probeer meerdere bestandsnamen, want de upload kan de extensie hebben gewijzigd.
+    const [side, setSide] = useState(0);
+    const wrapRef = useRef(null);
+    useEffect(() => {
+        const measure = () => {
+            const w = wrapRef.current ? wrapRef.current.clientWidth : 0;
+            setSide(Math.min(w, 760));
+        };
+        measure();
+        window.addEventListener("resize", measure);
+        return () => window.removeEventListener("resize", measure);
+    }, []);
     const candidates = ["garden-bg.jpeg", "garden-bg.jpg", "garden-bg.png", "garden-bg.JPEG", "garden-bg.JPG"];
     const imgError = srcIdx >= candidates.length;
-    return (React.createElement("div", { style: S.photoWrap },
-        React.createElement("div", { style: S.photoInner },
+    const photoBeds = beds.filter((b) => b.photo && b.pw != null);
+    return (React.createElement("div", { style: S.photoWrap, ref: wrapRef },
+        React.createElement("div", { style: Object.assign({}, S.photoInner, { width: side || "100%", height: side || 320 }) },
             !imgError && React.createElement("img", {
                 src: candidates[srcIdx], alt: "Plattegrond van de moestuin", style: S.photoImg, draggable: false,
                 onError: () => setSrcIdx((i) => i + 1),
             }),
             imgError && React.createElement("div", { style: S.photoErr },
                 "De achtergrondafbeelding kon niet worden geladen. ",
-                "Controleer of het bestand (garden-bg.jpg) naast index.html staat. ",
+                "Controleer of het bestand (garden-bg.jpeg) naast index.html staat. ",
                 "De vakken hieronder werken wel."),
-            beds.filter((b) => b.photo).map((b) => (React.createElement("button", {
+            photoBeds.length === 0 && React.createElement("div", { style: S.photoErr },
+                "Geen klikbare vakken gevonden. Laad de plattegrond opnieuw via het beginscherm ",
+                "(\"Mijn tuin\") zodat de vakken correct worden aangemaakt."),
+            photoBeds.map((b) => (React.createElement("button", {
                 key: b.id,
                 onClick: () => onSelect(b.id),
                 onPointerEnter: () => setHover(b.id),
@@ -914,7 +928,7 @@ const S = {
     viewport: { position: "absolute", inset: 0, overflow: "hidden", touchAction: "none" },
     world: { position: "absolute", top: 0, left: 0, transformOrigin: "0 0" },
     photoWrap: { position: "relative", width: "100%" },
-    photoInner: { position: "relative", width: "100%", maxWidth: 760, margin: "0 auto", paddingTop: "100%", height: 0,
+    photoInner: { position: "relative", margin: "0 auto",
         borderRadius: 16, overflow: "hidden", border: "1px solid #d8c9a0", boxShadow: "0 6px 20px rgba(60,45,20,.15)",
         backgroundColor: "#cdd6a3" },
     photoImg: { position: "absolute", top: 0, left: 0, display: "block", width: "100%", height: "100%", objectFit: "cover", userSelect: "none" },
