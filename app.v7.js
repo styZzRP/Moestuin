@@ -299,7 +299,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v10 ",
+                        " · v11 ",
                         React.createElement("button", { style: S.infoBtn, onClick: () => setShowInfo(true), "aria-label": "Over opslag" },
                             React.createElement(Info, { size: 14 }),
                             " opslag"),
@@ -320,7 +320,7 @@ function MoestuinApp() {
             React.createElement("input", { value: query, onChange: (e) => setQuery(e.target.value), placeholder: "Zoek een groente\u2026", style: S.searchInput }),
             query && (React.createElement("button", { style: S.iconBtn, onClick: () => setQuery(""), "aria-label": "Wissen" },
                 React.createElement(X, { size: 18 })))),
-        React.createElement("main", { style: S.main, className: "app-main" }, q ? (React.createElement(SearchResults, { current: currentMatches, archived: archiveMatches, onOpenBed: (id) => { setQuery(""); setSelectedBed(id); }, onViewArchived: (crop) => setArchiveCropView(crop) })) : state.beds.length === 0 ? (React.createElement(EmptyGarden, { onAdd: addBed, onLoadTemplate: () => persist(buildInitialGarden()), onLoadPhoto: () => persist(buildPhotoGarden()) })) : state.beds.some((b) => b.photo) ? (React.createElement(PhotoGarden, { beds: state.beds, onSelect: setSelectedBed })) : (React.createElement(GardenCanvas, { beds: state.beds, cropsFor: cropsFor, editLayout: editLayout, onSelect: setSelectedBed, onUpdateBed: updateBed }))),
+        React.createElement("main", { style: S.main, className: "app-main" }, q ? (React.createElement(SearchResults, { current: currentMatches, archived: archiveMatches, onOpenBed: (id) => { setQuery(""); setSelectedBed(id); }, onViewArchived: (crop) => setArchiveCropView(crop) })) : state.beds.length === 0 ? (React.createElement(EmptyGarden, { onAdd: addBed, onLoadTemplate: () => persist(buildInitialGarden()), onLoadPhoto: () => persist(buildPhotoGarden()) })) : state.beds.some((b) => b.photo) ? (React.createElement(PhotoGarden, { beds: state.beds, onSelect: setSelectedBed, onReload: () => persist(buildPhotoGarden()) })) : (React.createElement(GardenCanvas, { beds: state.beds, cropsFor: cropsFor, editLayout: editLayout, onSelect: setSelectedBed, onUpdateBed: updateBed }))),
         showInfo && React.createElement(InfoModal, { onClose: () => setShowInfo(false) }),
         archiveCropView && (React.createElement(ArchivedCropPanel, { item: archiveCropView, onClose: () => setArchiveCropView(null), onDelete: () => { deleteArchived(archiveCropView.id); setArchiveCropView(null); } })),
         bed && (React.createElement(BedPanel, { bed: bed, crops: cropsFor(bed.id), editLayout: editLayout, onClose: () => setSelectedBed(null), onSetCrops: (c) => setCrops(bed.id, c), onArchiveCrop: (cropId) => archiveCrop(bed.id, cropId), onRenameBed: (name) => updateBed(bed.id, { name }), onRemoveBed: () => removeBed(bed.id) }))));
@@ -366,29 +366,32 @@ function EmptyGarden({ onAdd, onLoadTemplate, onLoadPhoto }) {
                 " Lege bak"))));
 }
 // ── Foto-achtergrond met klikbare vakken ──────────────────────────────
-function PhotoGarden({ beds, onSelect }) {
+function PhotoGarden({ beds, onSelect, onReload }) {
     const [hover, setHover] = useState(null);
     const [srcIdx, setSrcIdx] = useState(0);
     const candidates = ["garden-bg.jpeg", "garden-bg.jpg", "garden-bg.png", "garden-bg.JPEG", "garden-bg.JPG"];
     const imgError = srcIdx >= candidates.length;
-    const photoBeds = beds.filter((b) => b.photo && b.pw != null);
+    const photoBeds = beds.filter((b) => b.photo);
+    const withCoords = photoBeds.filter((b) => b.pw != null);
+    // Diagnose: laat in gewone tekst zien wat er in de data zit (kan niet instorten).
+    const diag = "Diagnose — totaal bakken: " + beds.length
+        + " · met photo: " + photoBeds.length
+        + " · met coördinaten: " + withCoords.length
+        + (photoBeds[0] ? " · velden eerste: " + Object.keys(photoBeds[0]).join(",") : "");
     return (React.createElement("div", { style: S.photoWrap },
+        React.createElement("div", { style: S.diagBar }, diag),
+        withCoords.length === 0 && React.createElement("button", {
+            style: Object.assign({}, S.btnPrimary, { margin: "0 auto 12px", display: "flex" }),
+            onClick: () => onReload && onReload(),
+        }, "Plattegrond opnieuw laden"),
         React.createElement("div", { style: S.photoInner },
-            // De afbeelding bepaalt de hoogte van de container (gewone flow).
             !imgError && React.createElement("img", {
                 src: candidates[srcIdx], alt: "Plattegrond van de moestuin", style: S.photoImg, draggable: false,
                 onError: () => setSrcIdx((i) => i + 1),
             }),
-            // Als de afbeelding faalt: een vierkant groen vlak zodat de vakken toch ruimte hebben.
             imgError && React.createElement("div", { style: S.photoFallback }),
-            imgError && React.createElement("div", { style: S.photoErr },
-                "De achtergrondafbeelding kon niet worden geladen. ",
-                "Controleer of het bestand (garden-bg.jpeg) naast index.html staat."),
-            photoBeds.length === 0 && React.createElement("div", { style: S.photoErr },
-                "Geen klikbare vakken. Laad de plattegrond opnieuw via het beginscherm (\"Mijn tuin\")."),
-            // Klikbare vakken als absolute laag bovenop de afbeelding.
             React.createElement("div", { style: S.photoLayer },
-                photoBeds.map((b) => (React.createElement("button", {
+                withCoords.map((b) => (React.createElement("button", {
                     key: b.id,
                     onClick: () => onSelect(b.id),
                     onPointerEnter: () => setHover(b.id),
@@ -920,6 +923,9 @@ const S = {
     viewport: { position: "absolute", inset: 0, overflow: "hidden", touchAction: "none" },
     world: { position: "absolute", top: 0, left: 0, transformOrigin: "0 0" },
     photoWrap: { position: "relative", width: "100%" },
+    diagBar: { background: "#fff8e6", border: "1px solid #e2d6b6", borderRadius: 10,
+        padding: "10px 12px", fontSize: 12, color: "#6b5f42", lineHeight: 1.4, marginBottom: 12,
+        fontFamily: FONT_BODY, wordBreak: "break-word" },
     photoInner: { position: "relative", width: "100%", maxWidth: 760, margin: "0 auto",
         borderRadius: 16, overflow: "hidden", border: "1px solid #d8c9a0", boxShadow: "0 6px 20px rgba(60,45,20,.15)",
         backgroundColor: "#cdd6a3", lineHeight: 0 },
