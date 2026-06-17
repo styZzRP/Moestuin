@@ -137,6 +137,7 @@ const PHOTO_ZONES = [
     { name: "Fruithaag", x: 90.5, y: 7, w: 8, h: 82 },
     { name: "Kas", x: 8, y: 45, w: 27, h: 26 },
     { name: "Bloembak", x: 39, y: 67, w: 9, h: 12 },
+    { name: "Bloembakken 2", x: 38, y: 43, w: 8, h: 11 },
     { name: "Verhoogde bak 1", x: 58, y: 46, w: 27, h: 12 },
     { name: "Verhoogde bak 2", x: 60, y: 63, w: 27, h: 15 },
 ];
@@ -362,7 +363,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v22"))),
+                        " · v23"))),
             React.createElement("div", { style: S.headerActions, className: "app-header-actions" },
                 !state.beds.some((b) => b.photo) && React.createElement("button", { style: { ...S.btnGhost, ...(editLayout ? S.btnGhostActive : {}) }, onClick: () => setEditLayout((v) => !v) },
                     editLayout ? React.createElement(Grid3x3, { size: 16 }) : React.createElement(Move, { size: 16 }),
