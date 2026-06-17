@@ -125,19 +125,19 @@ const BED_TINTS = ["#7cb342", "#26a69a", "#ef9a3d", "#ec6b5e", "#ab7df0", "#5c9c
 const emptyState = { beds: [], crops: {}, archive: [] }; // crops keyed by bedId; archive = verwijderde groenten
 // Klikbare vakken op de achtergrondfoto (in % van de afbeelding: x, y, breedte, hoogte).
 const PHOTO_ZONES = [
-    { name: "Aardbeibed 1", x: 13, y: 13, w: 7.5, h: 20 },
-    { name: "Aardbeibed 2", x: 21, y: 13, w: 7.5, h: 20 },
-    { name: "Kruidenbed", x: 13, y: 36, w: 24, h: 7.5 },
-    { name: "Bed 1", x: 44, y: 13, w: 7.5, h: 27 },
-    { name: "Bed 2", x: 52, y: 13, w: 7, h: 27 },
-    { name: "Bed 3", x: 59, y: 13, w: 6.5, h: 27 },
-    { name: "Bed 4", x: 66, y: 13, w: 7, h: 27 },
-    { name: "Bed 5", x: 73.5, y: 13, w: 6.8, h: 27 },
-    { name: "Bed 6", x: 81, y: 13, w: 7.5, h: 27 },
-    { name: "Fruithaag", x: 90, y: 8, w: 9, h: 80 },
-    { name: "Kas", x: 7, y: 44, w: 28, h: 27 },
-    { name: "Verhoogde bak 1", x: 58, y: 43, w: 20, h: 15 },
-    { name: "Verhoogde bak 2", x: 57, y: 62, w: 26, h: 16 },
+    { name: "Aardbeibed 1", x: 12.5, y: 13, w: 7.5, h: 20 },
+    { name: "Aardbeibed 2", x: 20.5, y: 13, w: 7.5, h: 20 },
+    { name: "Kruidenbed", x: 13, y: 37, w: 23, h: 6.5 },
+    { name: "Bed 1", x: 44, y: 12, w: 7, h: 28 },
+    { name: "Bed 2", x: 51.5, y: 12, w: 6.5, h: 28 },
+    { name: "Bed 3", x: 58.5, y: 12, w: 6.5, h: 28 },
+    { name: "Bed 4", x: 65.5, y: 12, w: 6.5, h: 28 },
+    { name: "Bed 5", x: 72.5, y: 12, w: 6.5, h: 28 },
+    { name: "Bed 6", x: 79.5, y: 12, w: 7, h: 28 },
+    { name: "Fruithaag", x: 90.5, y: 7, w: 8, h: 82 },
+    { name: "Kas", x: 8, y: 45, w: 27, h: 26 },
+    { name: "Verhoogde bak 1", x: 58, y: 46, w: 27, h: 12 },
+    { name: "Verhoogde bak 2", x: 60, y: 63, w: 27, h: 15 },
 ];
 
 // Indeling op basis van de achtergrondfoto: elk vak wordt een klikbare bak.
@@ -214,8 +214,23 @@ function MoestuinApp() {
     };
     useEffect(() => {
         loadState().then((s) => {
-            if (s)
-                setState({ archive: [], ...s });
+            if (s) {
+                const next = { archive: [], ...s };
+                // Werk posities van foto-bakken bij naar de nieuwste coördinaten (op naam),
+                // zonder de bakken of hun logboek te vervangen.
+                if (next.beds && next.beds.some((b) => b.photo)) {
+                    const byName = {};
+                    PHOTO_ZONES.forEach((z) => { byName[z.name] = z; });
+                    next.beds = next.beds.map((b) => {
+                        if (b.photo && byName[b.name]) {
+                            const z = byName[b.name];
+                            return Object.assign({}, b, { px: z.x, py: z.y, pw: z.w, ph: z.h });
+                        }
+                        return b;
+                    });
+                }
+                setState(next);
+            }
             setLoaded(true);
         });
     }, []);
@@ -299,7 +314,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v17 ",
+                        " · v18 ",
                         React.createElement("button", { style: S.infoBtn, onClick: () => setShowInfo(true), "aria-label": "Over opslag" },
                             React.createElement(Info, { size: 14 }),
                             " opslag"),
