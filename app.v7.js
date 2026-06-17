@@ -299,7 +299,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v11 ",
+                        " · v12 ",
                         React.createElement("button", { style: S.infoBtn, onClick: () => setShowInfo(true), "aria-label": "Over opslag" },
                             React.createElement(Info, { size: 14 }),
                             " opslag"),
@@ -407,7 +407,11 @@ function PhotoGarden({ beds, onSelect, onReload }) {
                 },
                     React.createElement("span", { style: Object.assign({}, S.photoZoneLabel, { opacity: (hover === b.id || imgError) ? 1 : 0 }) }, b.name)
                 )))))),
-        React.createElement("div", { style: S.photoHint }, "Tik op een vak in de tuin om de groenten en het logboek te openen")
+        React.createElement("div", { style: S.photoHint },
+            "Tik op een vak in de tuin om de groenten en het logboek te openen",
+            React.createElement("br"),
+            React.createElement("span", { style: { fontSize: 11, opacity: 0.8 } },
+                "[bakken: " + beds.length + " · photo: " + photoBeds.length + " · coords: " + withCoords.length + "]"))
     );
 }
 // ── Tuin-canvas met pan/zoom + sleepbare bakken ───────────────────────
@@ -926,7 +930,7 @@ const S = {
     diagBar: { background: "#fff8e6", border: "1px solid #e2d6b6", borderRadius: 10,
         padding: "10px 12px", fontSize: 12, color: "#6b5f42", lineHeight: 1.4, marginBottom: 12,
         fontFamily: FONT_BODY, wordBreak: "break-word" },
-    photoInner: { position: "relative", width: "100%", maxWidth: 760, margin: "0 auto",
+    photoInner: { position: "relative", width: "100%", maxWidth: 760, margin: "0 auto", minHeight: 200,
         borderRadius: 16, overflow: "hidden", border: "1px solid #d8c9a0", boxShadow: "0 6px 20px rgba(60,45,20,.15)",
         backgroundColor: "#cdd6a3", lineHeight: 0 },
     photoImg: { display: "block", width: "100%", height: "auto", userSelect: "none" },
