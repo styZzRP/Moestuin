@@ -299,7 +299,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v9 ",
+                        " · v10 ",
                         React.createElement("button", { style: S.infoBtn, onClick: () => setShowInfo(true), "aria-label": "Over opslag" },
                             React.createElement(Info, { size: 14 }),
                             " opslag"),
@@ -369,49 +369,41 @@ function EmptyGarden({ onAdd, onLoadTemplate, onLoadPhoto }) {
 function PhotoGarden({ beds, onSelect }) {
     const [hover, setHover] = useState(null);
     const [srcIdx, setSrcIdx] = useState(0);
-    const [side, setSide] = useState(0);
-    const wrapRef = useRef(null);
-    useEffect(() => {
-        const measure = () => {
-            const w = wrapRef.current ? wrapRef.current.clientWidth : 0;
-            setSide(Math.min(w, 760));
-        };
-        measure();
-        window.addEventListener("resize", measure);
-        return () => window.removeEventListener("resize", measure);
-    }, []);
     const candidates = ["garden-bg.jpeg", "garden-bg.jpg", "garden-bg.png", "garden-bg.JPEG", "garden-bg.JPG"];
     const imgError = srcIdx >= candidates.length;
     const photoBeds = beds.filter((b) => b.photo && b.pw != null);
-    return (React.createElement("div", { style: S.photoWrap, ref: wrapRef },
-        React.createElement("div", { style: Object.assign({}, S.photoInner, { width: side || "100%", height: side || 320 }) },
+    return (React.createElement("div", { style: S.photoWrap },
+        React.createElement("div", { style: S.photoInner },
+            // De afbeelding bepaalt de hoogte van de container (gewone flow).
             !imgError && React.createElement("img", {
                 src: candidates[srcIdx], alt: "Plattegrond van de moestuin", style: S.photoImg, draggable: false,
                 onError: () => setSrcIdx((i) => i + 1),
             }),
+            // Als de afbeelding faalt: een vierkant groen vlak zodat de vakken toch ruimte hebben.
+            imgError && React.createElement("div", { style: S.photoFallback }),
             imgError && React.createElement("div", { style: S.photoErr },
                 "De achtergrondafbeelding kon niet worden geladen. ",
-                "Controleer of het bestand (garden-bg.jpeg) naast index.html staat. ",
-                "De vakken hieronder werken wel."),
+                "Controleer of het bestand (garden-bg.jpeg) naast index.html staat."),
             photoBeds.length === 0 && React.createElement("div", { style: S.photoErr },
-                "Geen klikbare vakken gevonden. Laad de plattegrond opnieuw via het beginscherm ",
-                "(\"Mijn tuin\") zodat de vakken correct worden aangemaakt."),
-            photoBeds.map((b) => (React.createElement("button", {
-                key: b.id,
-                onClick: () => onSelect(b.id),
-                onPointerEnter: () => setHover(b.id),
-                onPointerLeave: () => setHover((h) => (h === b.id ? null : h)),
-                title: b.name,
-                "aria-label": b.name,
-                style: Object.assign({}, S.photoZone, {
-                    left: b.px + "%", top: b.py + "%", width: b.pw + "%", height: b.ph + "%",
-                    background: hover === b.id ? "rgba(255,255,255,.18)" : (imgError ? "rgba(107,142,61,.18)" : "transparent"),
-                    boxShadow: hover === b.id ? "inset 0 0 0 3px rgba(255,255,255,.85)"
-                        : (imgError ? "inset 0 0 0 2px rgba(107,142,61,.6)" : "none"),
-                }),
-            },
-                React.createElement("span", { style: Object.assign({}, S.photoZoneLabel, { opacity: (hover === b.id || imgError) ? 1 : 0 }) }, b.name)
-            ))))),
+                "Geen klikbare vakken. Laad de plattegrond opnieuw via het beginscherm (\"Mijn tuin\")."),
+            // Klikbare vakken als absolute laag bovenop de afbeelding.
+            React.createElement("div", { style: S.photoLayer },
+                photoBeds.map((b) => (React.createElement("button", {
+                    key: b.id,
+                    onClick: () => onSelect(b.id),
+                    onPointerEnter: () => setHover(b.id),
+                    onPointerLeave: () => setHover((h) => (h === b.id ? null : h)),
+                    title: b.name,
+                    "aria-label": b.name,
+                    style: Object.assign({}, S.photoZone, {
+                        left: b.px + "%", top: b.py + "%", width: b.pw + "%", height: b.ph + "%",
+                        background: hover === b.id ? "rgba(255,255,255,.18)" : (imgError ? "rgba(107,142,61,.2)" : "transparent"),
+                        boxShadow: hover === b.id ? "inset 0 0 0 3px rgba(255,255,255,.85)"
+                            : (imgError ? "inset 0 0 0 2px rgba(107,142,61,.6)" : "none"),
+                    }),
+                },
+                    React.createElement("span", { style: Object.assign({}, S.photoZoneLabel, { opacity: (hover === b.id || imgError) ? 1 : 0 }) }, b.name)
+                )))))),
         React.createElement("div", { style: S.photoHint }, "Tik op een vak in de tuin om de groenten en het logboek te openen")
     );
 }
@@ -928,10 +920,12 @@ const S = {
     viewport: { position: "absolute", inset: 0, overflow: "hidden", touchAction: "none" },
     world: { position: "absolute", top: 0, left: 0, transformOrigin: "0 0" },
     photoWrap: { position: "relative", width: "100%" },
-    photoInner: { position: "relative", margin: "0 auto",
+    photoInner: { position: "relative", width: "100%", maxWidth: 760, margin: "0 auto",
         borderRadius: 16, overflow: "hidden", border: "1px solid #d8c9a0", boxShadow: "0 6px 20px rgba(60,45,20,.15)",
-        backgroundColor: "#cdd6a3" },
-    photoImg: { position: "absolute", top: 0, left: 0, display: "block", width: "100%", height: "100%", objectFit: "cover", userSelect: "none" },
+        backgroundColor: "#cdd6a3", lineHeight: 0 },
+    photoImg: { display: "block", width: "100%", height: "auto", userSelect: "none" },
+    photoFallback: { display: "block", width: "100%", paddingTop: "100%" },
+    photoLayer: { position: "absolute", top: 0, left: 0, width: "100%", height: "100%" },
     photoErr: { position: "absolute", top: 10, left: 10, right: 10, zIndex: 5, padding: "10px 12px",
         background: "rgba(251,230,223,.96)", border: "1px solid #e8b6a8", borderRadius: 10,
         fontSize: 12.5, color: "#a13d2d", lineHeight: 1.45, fontFamily: FONT_BODY },
@@ -940,7 +934,7 @@ const S = {
         display: "flex", alignItems: "flex-start", justifyContent: "center" },
     photoZoneLabel: { marginTop: 4, fontSize: 11, fontWeight: 700, color: "#2c2410",
         background: "rgba(255,255,255,.9)", padding: "2px 7px", borderRadius: 20,
-        whiteSpace: "nowrap", transition: "opacity .12s ease", fontFamily: FONT_BODY, pointerEvents: "none" },
+        whiteSpace: "nowrap", transition: "opacity .12s ease", fontFamily: FONT_BODY, pointerEvents: "none", lineHeight: 1.3 },
     photoHint: { textAlign: "center", fontSize: 12.5, color: "#9a8c66", fontStyle: "italic",
         fontFamily: FONT_DISPLAY, margin: "12px auto 0", maxWidth: 760 },
     canvasHint: { position: "absolute", bottom: 12, left: 14, right: 14, fontSize: 11.5, color: "#9a8c66",
