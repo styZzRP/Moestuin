@@ -122,7 +122,7 @@ const DISEASES = [
     "Wortelvlieg", "Aaltjes", "Voetrot", "Neusrot (tomaat)", "Anders…",
 ];
 const BED_TINTS = ["#7cb342", "#26a69a", "#ef9a3d", "#ec6b5e", "#ab7df0", "#5c9ce0", "#e0577f", "#9ccc4f"];
-const emptyState = { beds: [], crops: {}, archive: [] }; // crops keyed by bedId; archive = verwijderde groenten
+const emptyState = { beds: [], crops: {}, archive: [], tasks: [] }; // crops keyed by bedId; archive = verwijderde groenten; tasks = takenlijst
 // Klikbare vakken op de achtergrondfoto (in % van de afbeelding: x, y, breedte, hoogte).
 const PHOTO_ZONES = [
     { name: "Aardbeibed 1", x: 12.5, y: 13, w: 7.5, h: 20 },
@@ -253,7 +253,7 @@ function MoestuinApp() {
     useEffect(() => {
         loadState().then((s) => {
             if (s) {
-                const next = { archive: [], ...s };
+                const next = { archive: [], tasks: [], ...s };
                 // Werk posities van foto-bakken bij naar de nieuwste coördinaten (op naam),
                 // zonder de bakken of hun logboek te vervangen.
                 if (next.beds && next.beds.some((b) => b.photo)) {
@@ -334,6 +334,15 @@ function MoestuinApp() {
         });
     };
     const deleteArchived = (cropId) => persist({ ...state, archive: state.archive.filter((c) => c.id !== cropId) });
+    // Takenlijst
+    const addTask = (text, context) => {
+        const t = (text || "").trim();
+        if (!t) return;
+        const task = { id: uid(), text: t, context: context || null, created: today() };
+        persist({ ...state, tasks: [...(state.tasks || []), task] });
+    };
+    // Taak afstrepen = direct verwijderen
+    const completeTask = (taskId) => persist({ ...state, tasks: (state.tasks || []).filter((t) => t.id !== taskId) });
     if (!loaded) {
         return (React.createElement("div", { style: S.loading },
             React.createElement(Sprout, { size: 28, color: "#6b8e3d" }),
@@ -363,7 +372,7 @@ function MoestuinApp() {
                         state.beds.length,
                         " bak",
                         state.beds.length === 1 ? "" : "ken",
-                        " · v23"))),
+                        " · v24"))),
             React.createElement("div", { style: S.headerActions, className: "app-header-actions" },
                 !state.beds.some((b) => b.photo) && React.createElement("button", { style: { ...S.btnGhost, ...(editLayout ? S.btnGhostActive : {}) }, onClick: () => setEditLayout((v) => !v) },
                     editLayout ? React.createElement(Grid3x3, { size: 16 }) : React.createElement(Move, { size: 16 }),
@@ -379,6 +388,7 @@ function MoestuinApp() {
             query && (React.createElement("button", { style: S.iconBtn, onClick: () => setQuery(""), "aria-label": "Wissen" },
                 React.createElement(X, { size: 18 })))),
         React.createElement("main", { style: S.main, className: "app-main" }, q ? (React.createElement(SearchResults, { current: currentMatches, archived: archiveMatches, onOpenBed: (id) => { setQuery(""); setSelectedBed(id); }, onViewArchived: (crop) => setArchiveCropView(crop) })) : state.beds.length === 0 ? (React.createElement(EmptyGarden, { onAdd: addBed, onLoadTemplate: () => persist(buildInitialGarden()), onLoadPhoto: () => persist(buildPhotoGarden()) })) : state.beds.some((b) => b.photo) ? (React.createElement(ErrorBoundary, null, React.createElement(PhotoGarden, { beds: state.beds, onSelect: setSelectedBed, onReload: () => persist(buildPhotoGarden()) }))) : (React.createElement(GardenCanvas, { beds: state.beds, cropsFor: cropsFor, editLayout: editLayout, onSelect: setSelectedBed, onUpdateBed: updateBed }))),
+        (!q && state.beds.length > 0) && React.createElement(TaskList, { tasks: state.tasks || [], onAdd: (text) => addTask(text, null), onComplete: completeTask }),
         React.createElement("footer", { style: S.footer, className: "app-footer" },
             React.createElement("button", { style: S.footerBtn, onClick: forceUpdate },
                 React.createElement(Grid3x3, { size: 15 }),
@@ -392,7 +402,7 @@ function MoestuinApp() {
                 React.createElement("input", { type: "file", accept: "application/json,.json", onChange: importData, style: { display: "none" } }))),
         showInfo && React.createElement(InfoModal, { onClose: () => setShowInfo(false) }),
         archiveCropView && (React.createElement(ArchivedCropPanel, { item: archiveCropView, onClose: () => setArchiveCropView(null), onDelete: () => { deleteArchived(archiveCropView.id); setArchiveCropView(null); } })),
-        bed && (React.createElement(BedPanel, { bed: bed, crops: cropsFor(bed.id), editLayout: editLayout, onClose: () => setSelectedBed(null), onSetCrops: (c) => setCrops(bed.id, c), onArchiveCrop: (cropId) => archiveCrop(bed.id, cropId), onRenameBed: (name) => updateBed(bed.id, { name }), onRemoveBed: () => removeBed(bed.id) }))));
+        bed && (React.createElement(BedPanel, { bed: bed, crops: cropsFor(bed.id), editLayout: editLayout, onClose: () => setSelectedBed(null), onSetCrops: (c) => setCrops(bed.id, c), onArchiveCrop: (cropId) => archiveCrop(bed.id, cropId), onRenameBed: (name) => updateBed(bed.id, { name }), onRemoveBed: () => removeBed(bed.id), onAddTask: (cropName, text) => addTask(text, { cropName: cropName, bedName: bed.name }) }))));
 }
 // ── Leeg-staat ────────────────────────────────────────────────────────
 // ── Info: hoe en waar je gegevens worden bewaard ──────────────────────
@@ -433,6 +443,39 @@ function EmptyGarden({ onAdd, onLoadTemplate, onLoadPhoto }) {
             React.createElement("button", { style: S.btnGhost, onClick: onAdd },
                 React.createElement(Plus, { size: 16 }),
                 " Lege bak"))));
+}
+// ── Takenlijst ────────────────────────────────────────────────────────
+function TaskList({ tasks, onAdd, onComplete }) {
+    const [text, setText] = useState("");
+    const submit = () => { if (text.trim()) { onAdd(text); setText(""); } };
+    return React.createElement("div", { style: S.taskWrap },
+        React.createElement("div", { style: S.taskHead },
+            React.createElement(NotebookPen, { size: 16, color: "#6b8e3d" }),
+            " Takenlijst"),
+        React.createElement("div", { style: S.taskAddRow },
+            React.createElement("input", {
+                value: text,
+                onChange: (e) => setText(e.target.value),
+                onKeyDown: (e) => e.key === "Enter" && submit(),
+                placeholder: "Nieuwe taak toevoegen\u2026",
+                style: S.input,
+            }),
+            React.createElement("button", { style: S.btnPrimary, onClick: submit },
+                React.createElement(Plus, { size: 16 }))),
+        (!tasks || tasks.length === 0)
+            ? React.createElement("p", { style: S.taskEmpty }, "Geen taken. Voeg er hierboven een toe, of stuur er een vanuit een groente.")
+            : React.createElement("div", { style: S.taskItems },
+                tasks.map((t) => React.createElement("div", { key: t.id, style: S.taskItem },
+                    React.createElement("button", {
+                        style: S.taskCheck,
+                        onClick: () => onComplete(t.id),
+                        "aria-label": "Afstrepen",
+                        title: "Afstrepen (verwijdert de taak)",
+                    }),
+                    React.createElement("div", { style: { flex: 1 } },
+                        React.createElement("div", { style: S.taskText }, t.text),
+                        t.context && React.createElement("div", { style: S.taskContext },
+                            t.context.cropName + " \u00b7 " + t.context.bedName))))));
 }
 // ── Error boundary: vangt crashes en toont de fout op het scherm ──────
 class ErrorBoundary extends React.Component {
@@ -660,7 +703,7 @@ function GardenCanvas({ beds, cropsFor, editLayout, onSelect, onUpdateBed }) {
             : "Tik op een bak · sleep de achtergrond om te bewegen · knijp of gebruik +/− om te zoomen")));
 }
 // ── Detail-paneel van een bak ─────────────────────────────────────────
-function BedPanel({ bed, crops, editLayout, onClose, onSetCrops, onArchiveCrop, onRenameBed, onRemoveBed }) {
+function BedPanel({ bed, crops, editLayout, onClose, onSetCrops, onArchiveCrop, onRenameBed, onRemoveBed, onAddTask }) {
     const [newCrop, setNewCrop] = useState("");
     const [openCrop, setOpenCrop] = useState(null);
     const [editName, setEditName] = useState(false);
@@ -699,7 +742,7 @@ function BedPanel({ bed, crops, editLayout, onClose, onSetCrops, onArchiveCrop, 
                     React.createElement("input", { value: newCrop, onChange: (e) => setNewCrop(e.target.value), onKeyDown: (e) => e.key === "Enter" && addCrop(), placeholder: "Groente toevoegen, bijv. Tomaat", style: S.input }),
                     React.createElement("button", { style: S.btnPrimary, onClick: addCrop },
                         React.createElement(Plus, { size: 16 }))),
-                crops.length === 0 ? (React.createElement("p", { style: S.panelEmpty }, "Nog geen groenten in deze bak. Voeg er hierboven een toe.")) : (crops.map((crop) => (React.createElement(CropCard, { key: crop.id, crop: crop, open: openCrop === crop.id, onToggle: () => setOpenCrop(openCrop === crop.id ? null : crop.id), onUpdate: (patch) => updateCrop(crop.id, patch), onRemove: () => removeCrop(crop.id) })))),
+                crops.length === 0 ? (React.createElement("p", { style: S.panelEmpty }, "Nog geen groenten in deze bak. Voeg er hierboven een toe.")) : (crops.map((crop) => (React.createElement(CropCard, { key: crop.id, crop: crop, open: openCrop === crop.id, onToggle: () => setOpenCrop(openCrop === crop.id ? null : crop.id), onUpdate: (patch) => updateCrop(crop.id, patch), onRemove: () => removeCrop(crop.id), onAddTask: onAddTask })))),
                 React.createElement("div", { style: S.dangerZone }, confirmDelBed ? (React.createElement("div", { style: S.confirmRow },
                     React.createElement("span", { style: S.confirmText },
                         "\"",
@@ -714,7 +757,7 @@ function BedPanel({ bed, crops, editLayout, onClose, onSetCrops, onArchiveCrop, 
                     " Deze bak verwijderen")))))));
 }
 // ── Groente-kaart met logboek + notities ──────────────────────────────
-function CropCard({ crop, open, onToggle, onUpdate, onRemove }) {
+function CropCard({ crop, open, onToggle, onUpdate, onRemove, onAddTask }) {
     const [logType, setLogType] = useState("zaai");
     const [logDate, setLogDate] = useState(today());
     const [logNote, setLogNote] = useState("");
@@ -725,6 +768,16 @@ function CropCard({ crop, open, onToggle, onUpdate, onRemove }) {
     const [viewPhoto, setViewPhoto] = useState(null);
     const [confirmRemove, setConfirmRemove] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [taskText, setTaskText] = useState("");
+    const [taskSent, setTaskSent] = useState(false);
+    const sendTask = () => {
+        const t = taskText.trim();
+        if (!t || !onAddTask) return;
+        onAddTask(crop.name, t);
+        setTaskText("");
+        setTaskSent(true);
+        setTimeout(() => setTaskSent(false), 2000);
+    };
     const onPickPhotos = async (e) => {
         const files = Array.from(e.target.files || []);
         if (!files.length)
@@ -836,6 +889,14 @@ function CropCard({ crop, open, onToggle, onUpdate, onRemove }) {
                     " ",
                     busy ? "Bezig…" : "Foto toevoegen",
                     React.createElement("input", { type: "file", accept: "image/*", multiple: true, onChange: onPickPhotos, style: { display: "none" }, disabled: busy }))),
+            React.createElement("div", { style: S.sectionLabel },
+                React.createElement(NotebookPen, { size: 13 }),
+                " Taak voor de takenlijst"),
+            React.createElement("div", { style: S.logFormBottom },
+                React.createElement("input", { value: taskText, onChange: (e) => setTaskText(e.target.value), onKeyDown: (e) => e.key === "Enter" && sendTask(), placeholder: "Bijv. bijmesten, water geven\u2026", style: S.input }),
+                React.createElement("button", { style: S.btnPrimary, onClick: sendTask },
+                    React.createElement(Plus, { size: 16 }))),
+            taskSent && React.createElement("div", { style: { fontSize: 12.5, color: "#6b8e3d", fontWeight: 600, marginTop: 6 } }, "Taak toegevoegd aan de takenlijst \u2713"),
             confirmRemove ? (React.createElement("div", { style: S.confirmRow },
                 React.createElement("span", { style: S.confirmText }, "Uit bak halen? Logboek blijft bewaard in archief."),
                 React.createElement("div", { style: S.confirmBtns },
@@ -997,6 +1058,18 @@ const S = {
         background: "#6b8e3d", color: "#f3eddd", fontSize: 20 },
     brandName: { fontFamily: FONT_DISPLAY, fontWeight: 900, fontSize: 24, lineHeight: 1, letterSpacing: "-.01em" },
     brandSub: { fontSize: 12.5, color: "#8a7d5c", marginTop: 3, display: "flex", alignItems: "center", gap: 8 },
+    taskWrap: { maxWidth: 760, margin: "20px auto 0", padding: "16px 18px", background: "#fffdf6",
+        border: "1px solid #ddd0ad", borderRadius: 14 },
+    taskHead: { display: "flex", alignItems: "center", gap: 7, fontFamily: FONT_DISPLAY, fontWeight: 600,
+        fontSize: 17, color: INK, marginBottom: 12 },
+    taskAddRow: { display: "flex", gap: 8, marginBottom: 12 },
+    taskEmpty: { color: "#8a7d5c", fontStyle: "italic", fontSize: 13.5, margin: "4px 0", lineHeight: 1.5 },
+    taskItems: { display: "flex", flexDirection: "column", gap: 8 },
+    taskItem: { display: "flex", alignItems: "flex-start", gap: 11, padding: "9px 4px", borderBottom: "1px solid #f0e8d2" },
+    taskCheck: { width: 22, height: 22, borderRadius: "50%", border: "2px solid #b3a376", background: "#fffdf6",
+        cursor: "pointer", flexShrink: 0, marginTop: 1, padding: 0, transition: "background .12s ease, border-color .12s ease" },
+    taskText: { fontSize: 14.5, color: INK, lineHeight: 1.4 },
+    taskContext: { fontSize: 12, color: "#9a7b3d", marginTop: 3, fontWeight: 600 },
     footer: { display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center",
         padding: "20px 24px 28px", borderTop: "1px solid #ddd0ad", marginTop: 8 },
     footerBtn: { display: "inline-flex", alignItems: "center", gap: 6, background: "#fffdf6",
